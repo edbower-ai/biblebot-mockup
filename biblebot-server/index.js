@@ -56,7 +56,7 @@ app.post("/ask", async (req, res) => {
           response: `${data.reference}: ${data.text.trim()} (${data.translation_name})`
         });
       }
-    } catch {
+    } catch (err) {
       response = "Sorry, I couldn’t reach the Bible API just now.";
       return res.json({ response });
     }
