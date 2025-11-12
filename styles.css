@@ -1,11 +1,83 @@
-body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; background:#f9f7f3; color:#222; }
-.container { max-width:720px; margin:24px auto; padding:16px; background:#fff; border-radius:12px; box-shadow:0 6px 20px rgba(0,0,0,0.06); }
-h1 { margin:0 0 12px 0; font-size:1.5rem; color:#6b3f2a; }
-.chat { min-height:320px; max-height:60vh; overflow:auto; padding:12px; border:1px solid #eee; border-radius:8px; background:#fffaf6; }
-.message { margin:8px 0; padding:8px 12px; border-radius:8px; }
-.user { background:#e6f0ff; align-self:flex-end; text-align:right; }
-.bot { background:#f2efe9; }
-.composer { display:flex; gap:8px; margin-top:12px; }
-#userInput { flex:1; padding:10px; border-radius:8px; border:1px solid #ddd; }
-button { padding:10px 14px; border-radius:8px; border:none; background:#6b3f2a; color:#fff; cursor:pointer; }
-.status { margin-top:8px; color:#666; font-size:0.9rem; }
+body {
+  font-family: Arial, sans-serif;
+  background-color: #f9f3e3;
+  color: #3e2f1c;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+
+#app {
+  width: 100%;
+  max-width: 500px;
+  background: #fff8f0;
+  border: 2px solid #d4b28c;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+
+h1 {
+  text-align: center;
+  color: #8b5e3c;
+}
+
+.chat {
+  height: 300px;
+  overflow-y: auto;
+  border: 1px solid #d4b28c;
+  padding: 10px;
+  margin-bottom: 10px;
+  background: #fff0e5;
+  border-radius: 8px;
+}
+
+.message {
+  margin: 5px 0;
+  padding: 5px 10px;
+  border-radius: 8px;
+  max-width: 80%;
+}
+
+.user {
+  background: #d1e7dd;
+  align-self: flex-end;
+}
+
+.bot {
+  background: #ffe5b4;
+}
+
+.input-container {
+  display: flex;
+  gap: 5px;
+}
+
+#userInput {
+  flex: 1;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid #d4b28c;
+  resize: none;
+  overflow: hidden;
+  min-height: 40px;
+}
+
+#sendBtn {
+  padding: 10px 15px;
+  background-color: #d4b28c;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+#sendBtn:hover {
+  background-color: #c49e73;
+}
+
+#status {
+  font-size: 0.9em;
+  text-align: center;
+  color: #8b5e3c;
+}
