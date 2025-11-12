@@ -7,56 +7,81 @@ app.use(express.json());
 
 const topicMap = JSON.parse(fs.readFileSync("./topic_map.json", "utf8"));
 
-app.post("/ask", (req, res) => {
+app.post("/ask", async (req, res) => {
   const userInput = req.body.message.trim().toLowerCase();
   const doc = nlp(userInput);
   const keywords = doc.nouns().out("array").map(k => k.toLowerCase());
 
-  // Conversational pieces
   const intros = [
     "That’s a great question!",
-    "I’m glad you asked that.",
-    "Let’s see what the Bible says about that.",
-    "Good thought — here’s what Scripture says:"
-  ];
-
-  const transitions = [
-    "Here’s a verse that speaks to this:",
-    "One passage that comes to mind is:",
-    "God’s Word says this about it:",
-    "You might find this verse encouraging:"
+    "Let’s see what Scripture says about that.",
+    "I’m glad you asked — here’s what God’s Word says:",
+    "Good question! The Bible has wisdom for this."
   ];
 
   const closings = [
-    "I hope that helps you reflect today.",
-    "That’s a good reminder for us all.",
-    "May that verse bring you peace.",
-    "Keep seeking God’s Word for more wisdom."
+    "I hope that encourages you today.",
+    "May that bring you peace and understanding.",
+    "That’s a great reminder for us all.",
+    "Keep trusting in God’s Word!"
   ];
 
-  let response = "I’m not sure about that. Try asking about topics like faith, love, or forgiveness.";
+  let response;
 
-  // Look for topic match
+  // 🔹 1️⃣ Try to match a topic from topic_map
   for (const [topic, verses] of Object.entries(topicMap)) {
     if (keywords.some(k => topic.includes(k))) {
       const randomVerse = verses[Math.floor(Math.random() * verses.length)];
       const intro = intros[Math.floor(Math.random() * intros.length)];
-      const transition = transitions[Math.floor(Math.random() * transitions.length)];
       const closing = closings[Math.floor(Math.random() * closings.length)];
 
-      response = `${intro} ${transition} ${randomVerse}. ${closing}`;
-      break;
+      response = `${intro} Here’s a verse on ${topic}: ${randomVerse}. ${closing}`;
+      return res.json({ response });
     }
+  }
+
+  // 🔹 2️⃣ If it looks like a verse reference (e.g., "John 3:16")
+  const versePattern = /([1-3]?\s?[A-Za-z]+\s?\d{1,3}:\d{1,3}(-\d{1,3})?)/;
+  const match = userInput.match(versePattern);
+
+  if (match) {
+    const verseQuery = encodeURIComponent(match[0]);
+    try {
+      const resp = await fetch(`https://bible-api.com/${verseQuery}`);
+      const data = await resp.json();
+      if (data.text) {
+        return res.json({
+          response: `${data.reference}: ${data.text.trim()} (${data.translation_name})`
+        });
+      }
+    } catch {
+      response = "Sorry, I couldn’t reach the Bible API just now.";
+      return res.json({ response });
+    }
+  }
+
+  // 🔹 3️⃣ Otherwise, do a general Bible API search
+  try {
+    const query = encodeURIComponent(userInput);
+    const resp = await fetch(`https://bible-api.com/${query}`);
+    const data = await resp.json();
+
+    if (data.text) {
+      response = `${data.reference}: ${data.text.trim()} (${data.translation_name})`;
+    } else {
+      response = "I couldn’t find that topic. Try asking about love, faith, or hope.";
+    }
+  } catch {
+    response = "There was a problem connecting to the Bible API.";
   }
 
   res.json({ response });
 });
 
 app.get("/", (req, res) => {
-  res.send("BibleBot backend is running!");
+  res.send("BibleBot backend is running with Bible API support!");
 });
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
-
 
