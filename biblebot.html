@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BibleBot Chat App</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    background-color: #f5ebd0;
+    color: #5c4b2a;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+  }
+
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 30px;
+    background: #fff7e6;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
+
+  .logo { display: flex; align-items: center; gap: 10px; }
+  .logo img { height: 40px; width: 40px; }
+  .logo h1 { font-size: 1.8rem; }
+  nav a { margin: 0 10px; text-decoration: none; color: #5c4b2a; font-weight: 500; }
+  .user-btn { border: 1px solid #5c4b2a; background: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; }
+
+  .verse-of-day {
+    text-align: center;
+    padding: 15px 20px;
+  }
+
+  .verse-box {
+    display: inline-block;
+    background: #f1e6c2;
+    border: 1px solid #bfa97b;
+    border-radius: 8px;
+    padding: 15px 20px;
+    margin-top: 10px;
+    max-width: 90%;
+  }
+
+  .verse-ref { font-weight: 600; margin-bottom: 5px; display: block; }
+  .verse-text { font-size: 1rem; line-height: 1.4; }
+
+  .chat-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    max-width: 500px;
+    margin: 0 auto;
+    width: 100%;
+  }
+
+  #chat-messages {
+    flex: 1;
+    padding: 15px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    background: #fff7e6;
+    border-radius: 12px;
+    margin-bottom: 70px; /* space for fixed input */
+  }
+
+  .message {
+    padding: 10px 15px;
+    border-radius: 20px;
+    max-width: 70%;
+    word-wrap: break-word;
+    position: relative;
+  }
+
+  .message.user { background: #d9e4f5; align-self: flex-end; text-align: right; }
+  .message.bot { background: #f0e6d2; align-self: flex-start; }
+
+  .timestamp {
+    font-size: 0.7rem;
+    color: #777;
+    margin-top: 3px;
+  }
+
+  .typing { font-style: italic; color: #777; animation: blink 1s infinite; }
+
+  @keyframes blink { 50% { opacity: 0.5; } }
+
+  .input-area {
+    position: fixed;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 60%;
+    max-width: 500px;
+    display: flex;
+    gap: 10px;
+    padding: 10px;
+    background: #fff7e6;
+    border-top: 1px solid #ccc;
+  }
+
+  #user-input {
+    flex: 1;
+    padding: 12px 15px;
+    border-radius: 25px;
+    border: 1px solid #5c4b2a;
+    font-size: 1rem;
+    resize: none;
+    overflow: hidden;
+    max-height: 120px;
+  }
+
+  #send-btn {
+    padding: 12px 20px;
+    background: #8b6f47;
+    color: white;
+    border: none;
+    border-radius: 25px;
+    cursor: pointer;
+  }
+
+  #send-btn:hover { background: #70583a; }
+
+  @media(max-width: 600px){
+    .input-area, #chat-messages { width: 90%; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <img src="cross-icon.png.jpg" alt="BibleBot Logo">
+    <h1>BibleBot</h1>
+  </div>
+  <nav>
+    <a href="#">Home</a>
+    <a href="#">About</a>
+    <a href="#">Contact</a>
+  </nav>
+  <button class="user-btn">Hello, Tester</button>
+</header>
+
+<section class="verse-of-day">
+  <h2>Verse of the Day</h2>
+  <div class="verse-box">
+    <span class="verse-ref">Galatians 3:5</span>
+    <p class="verse-text">
+      So again I ask, does God give you his Spirit and work miracles among you by the works of the law, or by your believing what you heard?
+    </p>
+  </div>
+</section>
+
+<div class="chat-container">
+  <div id="chat-messages"></div>
+  <div class="input-area">
+    <textarea id="user-input" placeholder="Ask Anything..."></textarea>
+    <button id="send-btn">Send</button>
+  </div>
+</div>
+
+<script>
+  const chatMessages = document.getElementById("chat-messages");
+  const userInput = document.getElementById("user-input");
+  const sendButton = document.getElementById("send-btn");
+
+  function appendMessage(sender, text) {
+    const msg = document.createElement("div");
+    msg.classList.add("message", sender);
+    const timestamp = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+    msg.innerHTML = text + `<div class="timestamp">${timestamp}</div>`;
+    chatMessages.appendChild(msg);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+  }
+
+  userInput.addEventListener("input", () => {
+    userInput.style.height = "auto";
+    userInput.style.height = Math.min(userInput.scrollHeight, 120) + "px";
+  });
+
+  sendButton.addEventListener("click", sendMessage);
+  userInput.addEventListener("keypress", e => {
+    if(e.key === "Enter" && !e.shiftKey){ e.preventDefault(); sendMessage(); }
+  });
+
+  function sendMessage(){
+    const text = userInput.value.trim();
+    if(!text) return;
+    appendMessage("user", text);
+    userInput.value = "";
+    userInput.style.height = "auto";
+
+    const typing = document.createElement("div");
+    typing.classList.add("message","bot","typing");
+    typing.textContent = "BibleBot is typing...";
+    chatMessages.appendChild(typing);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+
+    setTimeout(() => {
+      typing.remove();
+      appendMessage("bot", getBotResponse(text));
+    }, 1200);
+  }
+
+  function getBotResponse(input){
+    input = input.toLowerCase();
+    if(input.includes("hello")||input.includes("hi")) return "Hello! How can I help you learn more about the Bible today?";
+    if(input.includes("jesus")) return "Jesus said, 'I am the way, the truth, and the life.' (John 14:6)";
+    if(input.includes("love")) return "1 Corinthians 13 reminds us that love is patient and kind.";
+    if(input.includes("bible")) return "The Bible is the God-breathed word of God!";
+    return "That's a great question! Can you tell me more about what you’d like to understand?";
+  }
+</script>
+
+</body>
+</html>
+
