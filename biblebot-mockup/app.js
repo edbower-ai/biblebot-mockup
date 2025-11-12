@@ -1,5 +1,5 @@
 // >>> REPLACE this with your deployed backend URL after you deploy on Render:
-const BACKEND_URL = "https://REPLACE_WITH_YOUR_RENDER_URL";
+const BACKEND_URL = "https://biblebot-mockup.onrender.com";
 
 const chatEl = document.getElementById("chat");
 const inputEl = document.getElementById("userInput");
