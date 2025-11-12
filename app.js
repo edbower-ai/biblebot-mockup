@@ -1,4 +1,4 @@
-// >>> REPLACE this with your deployed backend URL after you deploy on Render:
+// ✅ REPLACE this with your actual Render backend URL:
 const BACKEND_URL = "https://biblebot-mockup.onrender.com";
 
 const chatEl = document.getElementById("chat");
@@ -21,15 +21,21 @@ async function sendMessage() {
   inputEl.value = "";
   statusEl.innerText = "Fetching Scripture…";
   try {
-    const resp = await fetch(BACKEND_URL + "/api/message", {
+    // ✅ Updated endpoint: now matches your backend route (/ask)
+    const resp = await fetch(BACKEND_URL + "/ask", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ message: text })
     });
+
+    if (!resp.ok) {
+      throw new Error(`Server error: ${resp.status}`);
+    }
+
     const data = await resp.json();
-    addMessage("BibleBot", data.reply);
+    addMessage("BibleBot", data.response || "No response received.");
   } catch (err) {
-    console.error("Network error", err);
+    console.error("Network error:", err);
     addMessage("BibleBot", "Network error. Is the server URL configured?");
   } finally {
     statusEl.innerText = "";
@@ -37,4 +43,8 @@ async function sendMessage() {
 }
 
 sendBtn.addEventListener("click", sendMessage);
-inputEl.addEventListener("keydown", (e) => { if (e.key === "Enter") sendMessage(); });
+inputEl.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") sendMessage();
+});
+```
+
