@@ -6,47 +6,54 @@ import cors from "cors";
 const app = express();
 app.use(express.json());
 
-// Allow frontend requests
+// Enable CORS for frontend requests
 app.use(cors({ origin: "*" }));
 
-// Load topic map
+// Load your topic map
 const topicMap = JSON.parse(fs.readFileSync("./topic_map.json", "utf8"));
+
+// Intros and closings for responses
+const intros = [
+  "That’s a great question!",
+  "Let’s see what Scripture says about that.",
+  "I’m glad you asked — here’s what God’s Word says:",
+  "Good question! The Bible has wisdom for this."
+];
+
+const closings = [
+  "I hope that encourages you today.",
+  "May that bring you peace and understanding.",
+  "That’s a great reminder for us all.",
+  "Keep trusting in God’s Word!"
+];
 
 // POST /ask endpoint
 app.post("/ask", async (req, res) => {
   const userInput = req.body.message.trim().toLowerCase();
-  const doc = nlp(userInput);
-  const keywords = doc.nouns().out("array").map(k => k.toLowerCase());
 
-  const intros = [
-    "That’s a great question!",
-    "Let’s see what Scripture says about that.",
-    "I’m glad you asked — here’s what God’s Word says:",
-    "Good question! The Bible has wisdom for this."
-  ];
-
-  const closings = [
-    "I hope that encourages you today.",
-    "May that bring you peace and understanding.",
-    "That’s a great reminder for us all.",
-    "Keep trusting in God’s Word!"
-  ];
+  // Extract all terms, not just nouns
+  const keywords = nlp(userInput)
+    .terms()
+    .out("array")
+    .map(k => k.toLowerCase());
 
   let response;
 
-  // Match topic map
+  // 1️⃣ Match a topic from topic_map
   for (const [topic, verses] of Object.entries(topicMap)) {
-    if (keywords.some(k => topic.includes(k))) {
+    const topicWords = topic.split("_"); // handle multi-word topics
+
+    if (topicWords.some(word => keywords.includes(word))) {
       const randomVerse = verses[Math.floor(Math.random() * verses.length)];
       const intro = intros[Math.floor(Math.random() * intros.length)];
       const closing = closings[Math.floor(Math.random() * closings.length)];
 
-      response = `${intro} Here’s a verse on ${topic}: ${randomVerse}. ${closing}`;
+      response = `${intro} Here’s a verse on ${topic.replace(/_/g, " ")}: ${randomVerse}. ${closing}`;
       return res.json({ response });
     }
   }
 
-  // Check if verse reference
+  // 2️⃣ Check if input is a verse reference
   const versePattern = /([1-3]?\s?[A-Za-z]+\s?\d{1,3}:\d{1,3}(-\d{1,3})?)/;
   const match = userInput.match(versePattern);
 
@@ -66,7 +73,7 @@ app.post("/ask", async (req, res) => {
     }
   }
 
-  // General search
+  // 3️⃣ General Bible API search
   try {
     const query = encodeURIComponent(userInput);
     const resp = await fetch(`https://bible-api.com/${query}`);
@@ -85,8 +92,9 @@ app.post("/ask", async (req, res) => {
 
 // Health check
 app.get("/", (req, res) => {
-  res.send("BibleBot backend is running!");
+  res.send("BibleBot backend is running with Bible API support!");
 });
 
+// Use Render port or fallback to 3000
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
