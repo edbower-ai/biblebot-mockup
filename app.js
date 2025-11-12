@@ -1,4 +1,4 @@
-// ✅ REPLACE this with your actual Render backend URL:
+// ✅ Replace with your deployed Render backend URL
 const BACKEND_URL = "https://biblebot-mockup.onrender.com";
 
 const chatEl = document.getElementById("chat");
@@ -14,23 +14,28 @@ function addMessage(who, text) {
   chatEl.scrollTop = chatEl.scrollHeight;
 }
 
+// Expand input as user types
+inputEl.addEventListener("input", () => {
+  inputEl.style.height = "auto";
+  inputEl.style.height = inputEl.scrollHeight + "px";
+});
+
 async function sendMessage() {
   const text = inputEl.value.trim();
   if (!text) return;
   addMessage("You", text);
   inputEl.value = "";
+  inputEl.style.height = "auto";
   statusEl.innerText = "Fetching Scripture…";
+
   try {
-    // ✅ Updated endpoint: now matches your backend route (/ask)
     const resp = await fetch(BACKEND_URL + "/ask", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ message: text })
     });
 
-    if (!resp.ok) {
-      throw new Error(`Server error: ${resp.status}`);
-    }
+    if (!resp.ok) throw new Error(`Server error: ${resp.status}`);
 
     const data = await resp.json();
     addMessage("BibleBot", data.response || "No response received.");
@@ -46,5 +51,3 @@ sendBtn.addEventListener("click", sendMessage);
 inputEl.addEventListener("keydown", (e) => {
   if (e.key === "Enter") sendMessage();
 });
-```
-
