@@ -1,9 +1,13 @@
 import express from "express";
 import fs from "fs";
 import nlp from "compromise";
+import cors from "cors"; // ✅ import CORS
 
 const app = express();
 app.use(express.json());
+
+// ✅ Allow requests from any origin (or replace "*" with your frontend URL)
+app.use(cors({ origin: "*" }));
 
 const topicMap = JSON.parse(fs.readFileSync("./topic_map.json", "utf8"));
 
@@ -28,7 +32,6 @@ app.post("/ask", async (req, res) => {
 
   let response;
 
-  // 🔹 1️⃣ Try to match a topic from topic_map
   for (const [topic, verses] of Object.entries(topicMap)) {
     if (keywords.some(k => topic.includes(k))) {
       const randomVerse = verses[Math.floor(Math.random() * verses.length)];
@@ -40,7 +43,6 @@ app.post("/ask", async (req, res) => {
     }
   }
 
-  // 🔹 2️⃣ If it looks like a verse reference (e.g., "John 3:16")
   const versePattern = /([1-3]?\s?[A-Za-z]+\s?\d{1,3}:\d{1,3}(-\d{1,3})?)/;
   const match = userInput.match(versePattern);
 
@@ -60,7 +62,6 @@ app.post("/ask", async (req, res) => {
     }
   }
 
-  // 🔹 3️⃣ Otherwise, do a general Bible API search
   try {
     const query = encodeURIComponent(userInput);
     const resp = await fetch(`https://bible-api.com/${query}`);
@@ -84,4 +85,5 @@ app.get("/", (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
+```
 
