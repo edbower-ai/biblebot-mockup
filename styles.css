@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>BibleBot — Mockup</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo">📖</div>
+      <div class="title">BibleBot <small>— MVP mockup</small></div>
+    </div>
+    <div class="top-actions">
+      <button id="new-convo" class="btn">New convo</button>
+      <button id="toggle-theme" class="btn">Toggle theme</button>
+    </div>
+  </header>
+
+  <main class="container">
+    <aside class="sidebar">
+      <div class="sidebar-header">Conversations</div>
+      <ul id="convo-list" class="convo-list">
+        <li class="convo-item active" data-id="1">Welcome chat</li>
+        <li class="convo-item" data-id="2">Bible study notes</li>
+      </ul>
+    </aside>
+
+    <section class="chat-area">
+      <div class="chat-header">
+        <div class="chat-title">Welcome chat</div>
+        <div class="chat-meta">Mock user • Local</div>
+      </div>
+
+      <div id="messages" class="messages" aria-live="polite">
+        <div class="message system">Welcome to BibleBot — try asking about a passage.</div>
+      </div>
+
+      <form id="composer" class="composer" onsubmit="return false;">
+        <textarea id="input" class="input" placeholder="Ask something like: 'What is John 3:16?'" rows="1"></textarea>
+        <div class="composer-actions">
+          <button id="send" class="btn primary">Send</button>
+          <button id="clear" class="btn ghost">Clear</button>
+        </div>
+      </form>
+    </section>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
+
