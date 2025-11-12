@@ -1,16 +1,18 @@
 import express from "express";
 import fs from "fs";
 import nlp from "compromise";
-import cors from "cors"; // ✅ import CORS
+import cors from "cors";
 
 const app = express();
 app.use(express.json());
 
-// ✅ Allow requests from any origin (or replace "*" with your frontend URL)
+// Allow frontend requests
 app.use(cors({ origin: "*" }));
 
+// Load topic map
 const topicMap = JSON.parse(fs.readFileSync("./topic_map.json", "utf8"));
 
+// POST /ask endpoint
 app.post("/ask", async (req, res) => {
   const userInput = req.body.message.trim().toLowerCase();
   const doc = nlp(userInput);
@@ -32,6 +34,7 @@ app.post("/ask", async (req, res) => {
 
   let response;
 
+  // Match topic map
   for (const [topic, verses] of Object.entries(topicMap)) {
     if (keywords.some(k => topic.includes(k))) {
       const randomVerse = verses[Math.floor(Math.random() * verses.length)];
@@ -43,6 +46,7 @@ app.post("/ask", async (req, res) => {
     }
   }
 
+  // Check if verse reference
   const versePattern = /([1-3]?\s?[A-Za-z]+\s?\d{1,3}:\d{1,3}(-\d{1,3})?)/;
   const match = userInput.match(versePattern);
 
@@ -62,27 +66,27 @@ app.post("/ask", async (req, res) => {
     }
   }
 
+  // General search
   try {
     const query = encodeURIComponent(userInput);
     const resp = await fetch(`https://bible-api.com/${query}`);
     const data = await resp.json();
-
     if (data.text) {
       response = `${data.reference}: ${data.text.trim()} (${data.translation_name})`;
     } else {
       response = "I couldn’t find that topic. Try asking about love, faith, or hope.";
     }
-  } catch {
+  } catch (err) {
     response = "There was a problem connecting to the Bible API.";
   }
 
   res.json({ response });
 });
 
+// Health check
 app.get("/", (req, res) => {
-  res.send("BibleBot backend is running with Bible API support!");
+  res.send("BibleBot backend is running!");
 });
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
-
