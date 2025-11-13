@@ -10,7 +10,10 @@ app.use(express.json());
 // Load topic map
 const topicMap = JSON.parse(fs.readFileSync("./topic_map.json", "utf8"));
 
-// Helper to measure rough similarity between two words
+// Convert the topicMap keys into an array of topics
+const topics = Object.keys(topicMap).map(key => ({ text: key }));
+
+// --- Helper to measure rough similarity between two words ---
 function wordSimilarity(a, b) {
   a = a.toLowerCase();
   b = b.toLowerCase();
@@ -23,7 +26,13 @@ function wordSimilarity(a, b) {
   return matches / Math.max(a.length, b.length);
 }
 
-function findBestTopic(userInput, topics) {
+// --- Find the best topic match for user input ---
+function findBestTopic(userInput, topics = []) {
+  if (!Array.isArray(topics) || topics.length === 0) {
+    console.warn("No topics available!");
+    return null;
+  }
+
   let bestMatch = null;
   let highestScore = 0;
 
@@ -36,22 +45,21 @@ function findBestTopic(userInput, topics) {
 
     if (score > highestScore) {
       highestScore = score;
-      bestMatch = topic;
+      bestMatch = topic.text;
     }
   });
 
   return bestMatch;
 }
 
-// API route
+// --- API route ---
 app.post("/ask", async (req, res) => {
   const { message } = req.body;
-  if (!message)
-    return res.status(400).json({ error: "No message provided." });
+  if (!message) return res.status(400).json({ error: "No message provided." });
 
-  const bestTopic = findBestTopic(message);
+  const bestTopic = findBestTopic(message, topics);
 
-  if (!bestTopic) {
+  if (!bestTopic || !topicMap[bestTopic]) {
     return res.json({
       reply:
         "I'm not sure which Bible topic that relates to — could you phrase it a bit differently?",
@@ -59,8 +67,7 @@ app.post("/ask", async (req, res) => {
   }
 
   const verses = topicMap[bestTopic];
-  const verse =
-    verses[Math.floor(Math.random() * verses.length)];
+  const verse = verses[Math.floor(Math.random() * verses.length)];
 
   return res.json({
     reply: `It sounds like you're asking about **${bestTopic}**. The Bible says in ${verse}.`,
@@ -73,4 +80,3 @@ app.get("/", (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server listening on port ${PORT}`));
-
