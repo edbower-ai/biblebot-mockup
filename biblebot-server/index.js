@@ -10,14 +10,13 @@ app.use(cors({ origin: "*" }));
 const topicMap = JSON.parse(fs.readFileSync("./topic_map.json", "utf8"));
 
 const intros = [
-  "That’s a great question!",
   "Let’s see what Scripture says about that.",
-  "I’m glad you asked — here’s what God’s Word says:",
-  "Good question! The Bible has wisdom for this."
+  "I’m glad you brought that up — here’s what God’s Word says:",
+  "Good thought! The Bible has wisdom for this."
 ];
 
 const closings = [
-  "I hope that encourages you today.",
+  "I hope that helps!",
   "May that bring you peace and understanding.",
   "That’s a great reminder for us all.",
   "Keep trusting in God’s Word!"
