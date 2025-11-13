@@ -38,7 +38,7 @@ async function sendMessage() {
     if (!resp.ok) throw new Error(`Server error: ${resp.status}`);
 
     const data = await resp.json();
-    addMessage("BibleBot", data.response || "No response received.");
+    addMessage("BibleBot", data.reply || "No response received.");
   } catch (err) {
     console.error("Network error:", err);
     addMessage("BibleBot", "Network error. Is the server URL configured?");
