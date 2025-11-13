@@ -1,4 +1,4 @@
-// Replace with your deployed backend URL
+// Replace this with your actual Render backend URL
 const BACKEND_URL = "https://biblebot-mockup.onrender.com";
 
 const chatEl = document.getElementById("chat");
@@ -14,7 +14,6 @@ function addMessage(who, text) {
   chatEl.scrollTop = chatEl.scrollHeight;
 }
 
-// Expand input as user types
 inputEl.addEventListener("input", () => {
   inputEl.style.height = "auto";
   inputEl.style.height = inputEl.scrollHeight + "px";
@@ -26,7 +25,7 @@ async function sendMessage() {
   addMessage("You", text);
   inputEl.value = "";
   inputEl.style.height = "auto";
-  statusEl.innerText = "Fetching Scripture…";
+  statusEl.innerText = "Thinking...";
 
   try {
     const resp = await fetch(BACKEND_URL + "/ask", {
@@ -35,13 +34,11 @@ async function sendMessage() {
       body: JSON.stringify({ message: text })
     });
 
-    if (!resp.ok) throw new Error(`Server error: ${resp.status}`);
-
     const data = await resp.json();
     addMessage("BibleBot", data.reply || "No response received.");
   } catch (err) {
-    console.error("Network error:", err);
-    addMessage("BibleBot", "Network error. Is the server URL configured?");
+    console.error(err);
+    addMessage("BibleBot", "⚠️ Network error. Check your server URL.");
   } finally {
     statusEl.innerText = "";
   }
@@ -49,5 +46,8 @@ async function sendMessage() {
 
 sendBtn.addEventListener("click", sendMessage);
 inputEl.addEventListener("keydown", (e) => {
-  if (e.key === "Enter") sendMessage();
+  if (e.key === "Enter" && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
 });
