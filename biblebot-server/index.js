@@ -1,99 +1,81 @@
 import express from "express";
+import cors from "cors";
 import fs from "fs";
 import nlp from "compromise";
-import cors from "cors";
 
 const app = express();
+app.use(cors());
 app.use(express.json());
 
-// Enable CORS for frontend requests
-app.use(cors({ origin: "*" }));
-
-// Load your topic map
+// Load topic map
 const topicMap = JSON.parse(fs.readFileSync("./topic_map.json", "utf8"));
 
-// Intros and closings for responses
-const intros = [
-  "That’s a great question!",
-  "Let’s see what Scripture says about that.",
-  "I’m glad you asked — here’s what God’s Word says:",
-  "Good question! The Bible has wisdom for this."
-];
+// Basic helper to find the closest topic based on fuzzy matching
+function findBestTopic(userInput) {
+  const doc = nlp(userInput.toLowerCase());
+  const inputWords = doc.terms().out("array").filter(w => w.length > 2);
 
-const closings = [
-  "I hope that encourages you today.",
-  "May that bring you peace and understanding.",
-  "That’s a great reminder for us all.",
-  "Keep trusting in God’s Word!"
-];
+  let bestTopic = null;
+  let bestScore = 0;
 
-// POST /ask endpoint
-app.post("/ask", async (req, res) => {
-  const userInput = req.body.message.trim().toLowerCase();
-
-  // Extract all terms, not just nouns
-  const keywords = nlp(userInput)
-    .terms()
-    .out("array")
-    .map(k => k.toLowerCase());
-
-  let response;
-
-  // 1️⃣ Match a topic from topic_map
   for (const [topic, verses] of Object.entries(topicMap)) {
-    const topicWords = topic.split("_"); // handle multi-word topics
+    const topicWords = topic.toLowerCase().split(/\s+/);
 
-    if (topicWords.some(word => keywords.includes(word))) {
-      const randomVerse = verses[Math.floor(Math.random() * verses.length)];
-      const intro = intros[Math.floor(Math.random() * intros.length)];
-      const closing = closings[Math.floor(Math.random() * closings.length)];
-
-      response = `${intro} Here’s a verse on ${topic.replace(/_/g, " ")}: ${randomVerse}. ${closing}`;
-      return res.json({ response });
-    }
-  }
-
-  // 2️⃣ Check if input is a verse reference
-  const versePattern = /([1-3]?\s?[A-Za-z]+\s?\d{1,3}:\d{1,3}(-\d{1,3})?)/;
-  const match = userInput.match(versePattern);
-
-  if (match) {
-    const verseQuery = encodeURIComponent(match[0]);
-    try {
-      const resp = await fetch(`https://bible-api.com/${verseQuery}`);
-      const data = await resp.json();
-      if (data.text) {
-        return res.json({
-          response: `${data.reference}: ${data.text.trim()} (${data.translation_name})`
-        });
+    // Check how many input words overlap or are similar to the topic
+    let score = 0;
+    for (const word of inputWords) {
+      for (const tWord of topicWords) {
+        if (
+          word === tWord ||
+          word.includes(tWord) ||
+          tWord.includes(word) ||
+          nlp(word).similar(tWord) // approximate similarity
+        ) {
+          score++;
+        }
       }
-    } catch (err) {
-      response = "Sorry, I couldn’t reach the Bible API just now.";
-      return res.json({ response });
+    }
+
+    if (score > bestScore) {
+      bestScore = score;
+      bestTopic = topic;
     }
   }
 
-  // 3️⃣ General Bible API search
-  try {
-    const query = encodeURIComponent(userInput);
-    const resp = await fetch(`https://bible-api.com/${query}`);
-    const data = await resp.json();
-    if (data.text) {
-      response = `${data.reference}: ${data.text.trim()} (${data.translation_name})`;
-    } else {
-      response = "I couldn’t find that topic. Try asking about love, faith, or hope.";
-    }
-  } catch (err) {
-    response = "There was a problem connecting to the Bible API.";
+  return bestTopic;
+}
+
+// API route
+app.post("/ask", async (req, res) => {
+  const { message } = req.body;
+  if (!message)
+    return res.status(400).json({ error: "No message provided." });
+
+  const bestTopic = findBestTopic(message);
+
+  if (!bestTopic) {
+    return res.json({
+      reply:
+        "I'm not sure which Bible topic that relates to — could you phrase it a bit differently?",
+    });
   }
 
-  res.json({ response });
+  const verses = topicMap[bestTopic];
+  const verse =
+    verses[Math.floor(Math.random() * verses.length)];
+
+  return res.json({
+    reply: `It sounds like you're asking about **${bestTopic}**. The Bible says in ${verse}.`,
+  });
 });
 
-// Health check
 app.get("/", (req, res) => {
-  res.send("BibleBot backend is running with Bible API support!");
+  res.send("BibleBot backend is running 🚀");
 });
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`Server listening on port ${PORT}`));
+
 
 // Use Render port or fallback to 3000
 const PORT = process.env.PORT || 3000;
