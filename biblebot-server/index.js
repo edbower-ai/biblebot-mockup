@@ -10,7 +10,20 @@ app.use(express.json());
 // Load topic map
 const topicMap = JSON.parse(fs.readFileSync("./topic_map.json", "utf8"));
 
-// Basic helper to find the closest topic based on fuzzy matching
+// Helper to measure rough similarity between two words
+function wordSimilarity(a, b) {
+  a = a.toLowerCase();
+  b = b.toLowerCase();
+  if (a === b) return 1;
+  const minLen = Math.min(a.length, b.length);
+  let matches = 0;
+  for (let i = 0; i < minLen; i++) {
+    if (a[i] === b[i]) matches++;
+  }
+  return matches / Math.max(a.length, b.length);
+}
+
+// Find best-matching topic from the topic map
 function findBestTopic(userInput) {
   const doc = nlp(userInput.toLowerCase());
   const inputWords = doc.terms().out("array").filter(w => w.length > 2);
@@ -21,18 +34,12 @@ function findBestTopic(userInput) {
   for (const [topic, verses] of Object.entries(topicMap)) {
     const topicWords = topic.toLowerCase().split(/\s+/);
 
-    // Check how many input words overlap or are similar to the topic
+    // Compute overlap or similarity between input words and topic words
     let score = 0;
     for (const word of inputWords) {
       for (const tWord of topicWords) {
-        if (
-          word === tWord ||
-          word.includes(tWord) ||
-          tWord.includes(word) ||
-          nlp(word).similar(tWord) // approximate similarity
-        ) {
-          score++;
-        }
+        const sim = wordSimilarity(word, tWord);
+        if (sim > 0.6) score += sim;
       }
     }
 
