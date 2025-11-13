@@ -1,79 +1,89 @@
 import express from "express";
-import cors from "cors";
 import fs from "fs";
-import fetch from "node-fetch";
-import natural from "natural";
+import nlp from "compromise";
+import cors from "cors";
 
 const app = express();
-app.use(cors());
 app.use(express.json());
+app.use(cors({ origin: "*" }));
 
-// Load topic map
 const topicMap = JSON.parse(fs.readFileSync("./topic_map.json", "utf8"));
 
-// Helper: find most relevant topic using keyword overlap
-function findBestTopic(userInput, topicMap) {
-  const tokenizer = new natural.WordTokenizer();
-  const inputTokens = tokenizer.tokenize(userInput.toLowerCase());
+const intros = [
+  "That’s a great question!",
+  "Let’s see what Scripture says about that.",
+  "I’m glad you asked — here’s what God’s Word says:",
+  "Good question! The Bible has wisdom for this."
+];
 
-  let bestTopic = null;
-  let bestScore = 0;
+const closings = [
+  "I hope that encourages you today.",
+  "May that bring you peace and understanding.",
+  "That’s a great reminder for us all.",
+  "Keep trusting in God’s Word!"
+];
 
-  for (const topic in topicMap) {
-    const topicTokens = tokenizer.tokenize(topic.toLowerCase());
-    const common = topicTokens.filter((t) => inputTokens.includes(t));
-    const score = common.length / Math.max(topicTokens.length, inputTokens.length);
+app.post("/ask", async (req, res) => {
+  const userInput = req.body.message.trim().toLowerCase();
+  const keywords = nlp(userInput)
+    .terms()
+    .out("array")
+    .map(k => k.toLowerCase());
 
-    if (score > bestScore) {
-      bestScore = score;
-      bestTopic = topic;
+  let response;
+
+  // Match topic map
+  for (const [topic, verses] of Object.entries(topicMap)) {
+    const topicWords = topic.split("_");
+    if (topicWords.some(word => keywords.includes(word))) {
+      const randomVerse = verses[Math.floor(Math.random() * verses.length)];
+      const intro = intros[Math.floor(Math.random() * intros.length)];
+      const closing = closings[Math.floor(Math.random() * closings.length)];
+      response = `${intro} Here’s a verse on ${topic.replace(/_/g, " ")}: ${randomVerse}. ${closing}`;
+      return res.json({ response });
     }
   }
 
-  return bestTopic;
-}
+  // Check if input is a verse reference
+  const versePattern = /([1-3]?\s?[A-Za-z]+\s?\d{1,3}:\d{1,3}(-\d{1,3})?)/;
+  const match = userInput.match(versePattern);
 
-// Helper: fetch actual Bible verse text
-async function getVerseText(reference) {
+  if (match) {
+    const verseQuery = encodeURIComponent(match[0]);
+    try {
+      const resp = await fetch(`https://bible-api.com/${verseQuery}`);
+      const data = await resp.json();
+      if (data.text) {
+        return res.json({
+          response: `${data.reference}: ${data.text.trim()} (${data.translation_name})`
+        });
+      }
+    } catch (err) {
+      response = "Sorry, I couldn’t reach the Bible API just now.";
+      return res.json({ response });
+    }
+  }
+
+  // General search
   try {
-    const res = await fetch(
-      `https://bible-api.com/${encodeURIComponent(reference)}?translation=kjv`
-    );
-    const data = await res.json();
-    return data.text ? data.text.trim() : reference;
+    const query = encodeURIComponent(userInput);
+    const resp = await fetch(`https://bible-api.com/${query}`);
+    const data = await resp.json();
+    if (data.text) {
+      response = `${data.reference}: ${data.text.trim()} (${data.translation_name})`;
+    } else {
+      response = "I couldn’t find that topic. Try asking about love, faith, or hope.";
+    }
   } catch (err) {
-    console.error("Bible API error:", err);
-    return reference;
-  }
-}
-
-// Main chat route
-app.post("/ask", async (req, res) => {
-  const { message } = req.body;
-  if (!message)
-    return res.status(400).json({ error: "No message provided." });
-
-  const bestTopic = findBestTopic(message, topicMap);
-
-  if (!bestTopic) {
-    return res.json({
-      reply:
-        "I'm not sure which Bible topic that relates to — could you rephrase it?",
-    });
+    response = "There was a problem connecting to the Bible API.";
   }
 
-  const verses = topicMap[bestTopic];
-  const reference = verses[Math.floor(Math.random() * verses.length)];
-  const verseText = await getVerseText(reference);
-
-  return res.json({
-    reply: `It sounds like you're asking about **${bestTopic}**.\n\n📖 ${reference}\n\n${verseText}`,
-  });
+  res.json({ response });
 });
 
 app.get("/", (req, res) => {
-  res.send("BibleBot backend is running 🚀");
+  res.send("BibleBot backend is running!");
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`✅ Server listening on port ${PORT}`));
+app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
