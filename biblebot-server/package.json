@@ -7,6 +7,9 @@
   "scripts": {
     "start": "node index.js"
   },
+  "engines": {
+    "node": "22.x"
+  },
   "dependencies": {
     "compromise": "^14.0.0",
     "cors": "^2.8.5",
