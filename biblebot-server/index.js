@@ -7,70 +7,45 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Load topic map
 const topicMap = JSON.parse(fs.readFileSync("./topic_map.json", "utf8"));
+const topics = Object.keys(topicMap);
 
-// Convert the topicMap keys into an array of topics
-const topics = Object.keys(topicMap).map(key => ({ text: key }));
-
-// --- Helper to measure rough similarity between two words ---
-function wordSimilarity(a, b) {
-  a = a.toLowerCase();
-  b = b.toLowerCase();
-  if (a === b) return 1;
-  const minLen = Math.min(a.length, b.length);
-  let matches = 0;
-  for (let i = 0; i < minLen; i++) {
-    if (a[i] === b[i]) matches++;
-  }
-  return matches / Math.max(a.length, b.length);
-}
-
-// --- Find the best topic match for user input ---
-function findBestTopic(userInput, topics = []) {
-  if (!Array.isArray(topics) || topics.length === 0) {
-    console.warn("No topics available!");
-    return null;
-  }
-
+// helper to find best matching topic
+function findBestTopic(userInput) {
   let bestMatch = null;
   let highestScore = 0;
 
-  const inputTokens = nlp(userInput).terms().out('array').map(t => t.toLowerCase());
+  const inputTokens = nlp(userInput).terms().out("array").map(t => t.toLowerCase());
 
   topics.forEach(topic => {
-    const topicTokens = nlp(topic.text).terms().out('array').map(t => t.toLowerCase());
+    const topicTokens = nlp(topic).terms().out("array").map(t => t.toLowerCase());
     const common = topicTokens.filter(t => inputTokens.includes(t));
     const score = common.length / Math.max(topicTokens.length, inputTokens.length);
-
     if (score > highestScore) {
       highestScore = score;
-      bestMatch = topic.text;
+      bestMatch = topic;
     }
   });
 
   return bestMatch;
 }
 
-// --- API route ---
-app.post("/ask", async (req, res) => {
+app.post("/ask", (req, res) => {
   const { message } = req.body;
   if (!message) return res.status(400).json({ error: "No message provided." });
 
-  const bestTopic = findBestTopic(message, topics);
-
-  if (!bestTopic || !topicMap[bestTopic]) {
+  const bestTopic = findBestTopic(message);
+  if (!bestTopic) {
     return res.json({
-      reply:
-        "I'm not sure which Bible topic that relates to — could you phrase it a bit differently?",
+      reply: "I'm not sure which Bible topic that relates to — could you phrase it differently?"
     });
   }
 
   const verses = topicMap[bestTopic];
   const verse = verses[Math.floor(Math.random() * verses.length)];
 
-  return res.json({
-    reply: `It sounds like you're asking about **${bestTopic}**. The Bible says in ${verse}.`,
+  res.json({
+    reply: `It sounds like you're asking about **${bestTopic}**. The Bible says in ${verse}.`
   });
 });
 
@@ -79,4 +54,4 @@ app.get("/", (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server listening on port ${PORT}`));
+app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
