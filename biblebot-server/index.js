@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import fs from "fs";
 import nlp from "compromise";
+import natural from "natural";
 
 const app = express();
 app.use(cors());
@@ -10,27 +11,30 @@ app.use(express.json());
 const topicMap = JSON.parse(fs.readFileSync("./topic_map.json", "utf8"));
 const topics = Object.keys(topicMap);
 
-// helper to find best matching topic
-function findBestTopic(userInput) {
-  let bestMatch = null;
-  let highestScore = 0;
+function findBestTopic(userInput, topicMap) {
+  const tokenizer = new natural.WordTokenizer();
+  const inputTokens = tokenizer.tokenize(userInput.toLowerCase());
 
-  const inputTokens = nlp(userInput).terms().out("array").map(t => t.toLowerCase());
+  let bestTopic = null;
+  let bestScore = 0;
 
-  topics.forEach(topic => {
-    const topicTokens = nlp(topic).terms().out("array").map(t => t.toLowerCase());
+  for (const topic in topicMap) {
+    const topicTokens = tokenizer.tokenize(topic.toLowerCase());
+
+    // Compute overlap ratio
     const common = topicTokens.filter(t => inputTokens.includes(t));
     const score = common.length / Math.max(topicTokens.length, inputTokens.length);
-    if (score > highestScore) {
-      highestScore = score;
-      bestMatch = topic;
-    }
-  });
 
-  return bestMatch;
+    if (score > bestScore) {
+      bestScore = score;
+      bestTopic = topic;
+    }
+  }
+
+  return bestTopic;
 }
 
-app.post("/ask", (req, res) => {
+ post("/ask", (req, res) => {
   const { message } = req.body;
   if (!message) return res.status(400).json({ error: "No message provided." });
 
