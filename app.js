@@ -1,4 +1,3 @@
-// Replace this with your actual Render backend URL
 const BACKEND_URL = "https://biblebot-mockup.onrender.com";
 
 const chatEl = document.getElementById("chat");
@@ -25,7 +24,7 @@ async function sendMessage() {
   addMessage("You", text);
   inputEl.value = "";
   inputEl.style.height = "auto";
-  statusEl.innerText = "Thinking...";
+  statusEl.innerText = "Fetching Scripture…";
 
   try {
     const resp = await fetch(BACKEND_URL + "/ask", {
@@ -34,11 +33,13 @@ async function sendMessage() {
       body: JSON.stringify({ message: text })
     });
 
+    if (!resp.ok) throw new Error(`Server error: ${resp.status}`);
+
     const data = await resp.json();
-    addMessage("BibleBot", data.reply || "No response received.");
+    addMessage("BibleBot", data.response || "No response received.");
   } catch (err) {
-    console.error(err);
-    addMessage("BibleBot", "⚠️ Network error. Check your server URL.");
+    console.error("Network error:", err);
+    addMessage("BibleBot", "Network error. Is the server URL configured?");
   } finally {
     statusEl.innerText = "";
   }
