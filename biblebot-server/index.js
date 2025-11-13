@@ -23,33 +23,24 @@ function wordSimilarity(a, b) {
   return matches / Math.max(a.length, b.length);
 }
 
-// Find best-matching topic from the topic map
-function findBestTopic(userInput) {
-  const doc = nlp(userInput.toLowerCase());
-  const inputWords = doc.terms().out("array").filter(w => w.length > 2);
+function findBestTopic(userInput, topics) {
+  let bestMatch = null;
+  let highestScore = 0;
 
-  let bestTopic = null;
-  let bestScore = 0;
+  const inputTokens = nlp(userInput).terms().out('array').map(t => t.toLowerCase());
 
-  for (const [topic, verses] of Object.entries(topicMap)) {
-    const topicWords = topic.toLowerCase().split(/\s+/);
+  topics.forEach(topic => {
+    const topicTokens = nlp(topic.text).terms().out('array').map(t => t.toLowerCase());
+    const common = topicTokens.filter(t => inputTokens.includes(t));
+    const score = common.length / Math.max(topicTokens.length, inputTokens.length);
 
-    // Compute overlap or similarity between input words and topic words
-    let score = 0;
-    for (const word of inputWords) {
-      for (const tWord of topicWords) {
-        const sim = wordSimilarity(word, tWord);
-        if (sim > 0.6) score += sim;
-      }
+    if (score > highestScore) {
+      highestScore = score;
+      bestMatch = topic;
     }
+  });
 
-    if (score > bestScore) {
-      bestScore = score;
-      bestTopic = topic;
-    }
-  }
-
-  return bestTopic;
+  return bestMatch;
 }
 
 // API route
